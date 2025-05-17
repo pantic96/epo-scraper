@@ -20,10 +20,22 @@ def scrape():
     url = f"https://register.epo.org/application?number={patent_number}"
     headers = {"User-Agent": "Mozilla/5.0"}
     r = requests.get(url, headers=headers)
-
     soup = BeautifulSoup(r.text, "html.parser")
+
+    # Try to extract title from meta first
     title_tag = soup.find("meta", {"name": "DC.title"})
-    title = title_tag["content"] if title_tag else "Not found"
+    title = title_tag["content"] if title_tag else None
+
+    # Fallback: try to get title from main content table
+    if not title:
+        label_cell = soup.find("th", string="Title")
+        if label_cell:
+            title_td = label_cell.find_next_sibling("td")
+            if title_td:
+                title = title_td.get_text(strip=True)
+
+    if not title:
+        title = "Not found"
 
     return jsonify({
         "patent_number": patent_number,
